@@ -15,7 +15,7 @@
 </head>
 <body>
   <div id="controls">
-    <input id="start-input" type="text" placeholder="Ingresa tu ubicación (dirección)" size="40" />
+    <input id="start-input" type="text" placeholder="Escribe aquí tu dirección de casa" size="40" />
     <button id="route-btn">Calcular Ruta</button>
   </div>
   <div id="map"></div>
@@ -48,8 +48,8 @@
             return;
           }
           const [lat, lon] = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
-          // Coordenadas de tu colegio:
-          const schoolLatLng = L.latLng(-12.203333637115092, -76.92413996503542);
+          // Coordenadas actualizadas de tu colegio:
+          const schoolLatLng = L.latLng(-12.151760992549448, -76.95212577902404);
           const startLatLng  = L.latLng(lat, lon);
 
           // Eliminar ruta anterior si existe
