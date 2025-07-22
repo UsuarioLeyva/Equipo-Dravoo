@@ -1,126 +1,67 @@
-
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8" />
+  <title>Mi Mapa Web</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mi Google Maps Avanzado</title>
+
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet/dist/leaflet.css"
+  />
+
   <style>
     html, body {
       height: 100%;
       margin: 0;
-      padding: 0;
-      font-family: Arial, sans-serif;
     }
-    #map { height: 100%; width: 100%; }
-    #search-container {
-      position: absolute;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 5;
+    #map {
+      height: 100vh;
+      width: 100%;
+    }
+    .leaflet-control-locate {
       background: white;
-      padding: 5px;
       border-radius: 4px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-      display: flex;
-      align-items: center;
+      padding: 6px;
     }
-    #search-input {
-      width: 300px;
-      padding: 5px;
-      border: 1px solid #ccc;
-      border-radius: 3px;
-    }
-    #locate-btn {
-      margin-left: 5px;
-      padding: 5px 10px;
-      border: none;
-      background: #4285F4;
-      color: white;
-      border-radius: 3px;
-      cursor: pointer;
-    }
-    #locate-btn:hover { background: #357AE8; }
   </style>
 </head>
 <body>
-  <div id="search-container">
-    <input id="search-input" type="text" placeholder="Buscar lugar..." />
-    <button id="locate-btn">📍 Mi ubicación</button>
-  </div>
   <div id="map"></div>
 
-  <script>
-    let map, marker, trafficLayer, directionsService, directionsRenderer, searchBox;
-
-    function initMap() {
-      map = new google.maps.Map(document.getElementById('map'), {
-        center: { lat: -12.0464, lng: -77.0428 },
-        zoom: 14,
-        mapTypeControl: false
-      });
-
-      trafficLayer = new google.maps.TrafficLayer();
-      trafficLayer.setMap(map);
-
-      directionsService = new google.maps.DirectionsService();
-      directionsRenderer = new google.maps.DirectionsRenderer({ map });
-
-      const input = document.getElementById('search-input');
-      searchBox = new google.maps.places.SearchBox(input);
-      map.controls[google.maps.ControlPosition.TOP_CENTER].push(input);
-
-      searchBox.addListener('places_changed', () => {
-        const places = searchBox.getPlaces();
-        if (!places || !places.length) return;
-        calculateRoute(places[0].geometry.location);
-      });
-
-      document.getElementById('locate-btn').addEventListener('click', () => {
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition((pos) => {
-            const userLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-            map.setCenter(userLoc);
-            if (marker) marker.setMap(null);
-            marker = new google.maps.Marker({ position: userLoc, map, title: 'Tú estás aquí' });
-            if (lastDestination) calculateRoute(lastDestination);
-          }, () => {
-            alert('Permiso de ubicación denegado o no disponible.');
-          });
-        } else {
-          alert('Geolocalización no es soportada por tu navegador.');
-        }
-      });
-    }
-
-    let lastDestination = null;
-    function calculateRoute(dest) {
-      lastDestination = dest;
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition((pos) => {
-          const origin = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          const request = {
-            origin,
-            destination: dest,
-            travelMode: google.maps.TravelMode.DRIVING,
-            drivingOptions: { departureTime: new Date() },
-            avoidHighways: true,
-            unitSystem: google.maps.UnitSystem.METRIC
-          };
-          directionsService.route(request, (response, status) => {
-            if (status === 'OK') {
-              directionsRenderer.setDirections(response);
-            } else {
-              alert('No se pudo obtener ruta: ' + status);
-            }
-          });
-        }, () => {});
-      }
-    }
+  <!-- Leaflet JS -->
+  <script
+    src="https://unpkg.com/leaflet/dist/leaflet.js">
   </script>
-  <script async
-    src="https://maps.googleapis.com/maps/api/js?key=TU_API_KEY&libraries=places&callback=initMap">
+
+  <script>
+    // Crear mapa centrado en una posición inicial
+    const map = L.map('map').setView([0, 0], 13);
+
+    // Cargar mapa de OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Intentar ubicar al usuario
+    map.locate({ setView: true, maxZoom: 16 });
+
+    // Marcador en la ubicación del usuario
+    function onLocationFound(e) {
+      const radius = e.accuracy;
+      L.marker(e.latlng).addTo(map)
+        .bindPopup("Estás aquí").openPopup();
+      L.circle(e.latlng, radius).addTo(map);
+    }
+
+    // Si hay error de ubicación
+    function onLocationError(e) {
+      alert("No se pudo obtener tu ubicación");
+    }
+
+    map.on('locationfound', onLocationFound);
+    map.on('locationerror', onLocationError);
   </script>
 </body>
 </html>
