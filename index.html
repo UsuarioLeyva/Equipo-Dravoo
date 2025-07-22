@@ -1,67 +1,74 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <title>Mi Mapa Web</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- Leaflet CSS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet/dist/leaflet.css"
-  />
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rutas Escolares con Leaflet y OSM</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
   <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-    }
-    #map {
-      height: 100vh;
-      width: 100%;
-    }
-    .leaflet-control-locate {
-      background: white;
-      border-radius: 4px;
-      padding: 6px;
-    }
+    body, html { margin: 0; padding: 0; height: 100%; font-family: Arial, sans-serif; }
+    #map { height: 90%; }
+    #controls { padding: 10px; background: #f4f4f4; }
+    input, button { padding: 8px; margin-right: 5px; font-size: 1rem; }
   </style>
 </head>
 <body>
+  <div id="controls">
+    <input id="start-input" type="text" placeholder="Ingresa tu ubicación (dirección)" size="40" />
+    <button id="route-btn">Calcular Ruta</button>
+  </div>
   <div id="map"></div>
 
-  <!-- Leaflet JS -->
-  <script
-    src="https://unpkg.com/leaflet/dist/leaflet.js">
-  </script>
-
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
   <script>
-    // Crear mapa centrado en una posición inicial
-    const map = L.map('map').setView([0, 0], 13);
+    // Inicializar el mapa centrado en Lima
+    const map = L.map('map').setView([-12.0464, -77.0428], 13);
 
-    // Cargar mapa de OpenStreetMap
+    // Capa base OpenStreetMap
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    // Intentar ubicar al usuario
-    map.locate({ setView: true, maxZoom: 16 });
+    let control;
+    document.getElementById('route-btn').addEventListener('click', () => {
+      const address = document.getElementById('start-input').value;
+      if (!address) {
+        alert('Por favor ingresa tu dirección de partida.');
+        return;
+      }
 
-    // Marcador en la ubicación del usuario
-    function onLocationFound(e) {
-      const radius = e.accuracy;
-      L.marker(e.latlng).addTo(map)
-        .bindPopup("Estás aquí").openPopup();
-      L.circle(e.latlng, radius).addTo(map);
-    }
+      // Geocodificar con Nominatim
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.length === 0) {
+            alert('Dirección no encontrada.');
+            return;
+          }
+          const [lat, lon] = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+          // Coordenadas de tu colegio:
+          const schoolLatLng = L.latLng(-12.203333637115092, -76.92413996503542);
+          const startLatLng  = L.latLng(lat, lon);
 
-    // Si hay error de ubicación
-    function onLocationError(e) {
-      alert("No se pudo obtener tu ubicación");
-    }
-
-    map.on('locationfound', onLocationFound);
-    map.on('locationerror', onLocationError);
+          // Eliminar ruta anterior si existe
+          if (control) map.removeControl(control);
+          // Añadir nueva ruta
+          control = L.Routing.control({
+            waypoints: [startLatLng, schoolLatLng],
+            router: L.Routing.osrmv1({
+              serviceUrl: 'https://router.project-osrm.org/route/v1'
+            }),
+            show: false,
+            routeWhileDragging: false
+          }).addTo(map);
+        })
+        .catch(err => {
+          console.error(err);
+          alert('Error al obtener coordenadas.');
+        });
+    });
   </script>
 </body>
 </html>
